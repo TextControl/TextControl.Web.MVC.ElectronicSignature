@@ -1,0 +1,105 @@
+﻿@using TXTextControl.Web
+@using TXTextControl.Web.MVC
+
+@Html.TXTextControl().TextControl(settings =>
+{
+    settings.Dock = DockStyle.Window;
+    settings.EditMode = EditMode.ReadOnly;
+}).LoadText(Server.MapPath("/App_Data/documents/nda_contract.tx"), StreamType.InternalUnicodeFormat).Render()
+
+<div id="SignatureDialog"></div>
+
+<script>
+
+    // add a new ribbon group "Document" with a "Sign" button
+    TXTextControl.addEventListener("ribbonTabsLoaded", function (e) {
+
+        var sSignGroupHTML = "<div class='ribbon-group' id='ribbonGroupSign'>" +
+            "<div class='ribbon-group-content'>" +
+            "<div onclick='OpenSignatureDialog();' class='ribbon-button ribbon-button-big' id='btnSign'>" +
+            "<div class='ribbon-button-big-image-container'>" +
+            "<img src='/icons/sign.png' class='ribbon-button-big-image'>" +
+            "</div>" +
+            "<div class='ribbon-button-big-label-container'>" +
+            "<p class='ribbon-button-label'>Sign</p>" +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            "<div class='ribbon-group-label-container'>" +
+            "<p class='ribbon-group-label'>Document</p>" +
+            "</div>" +
+            "</div>";
+
+        $("#ribbonTabHome").prepend(sSignGroupHTML);
+    });
+
+    // create a new dialog based on the partial view
+    // SignatureDialog.cshtml
+    function OpenSignatureDialog() {
+        $("#SignatureDialog").dialog({
+            autoOpen: true,
+            position: { my: "center", at: "top+350", of: window },
+            width: 400,
+            resizable: false,
+            title: 'Sign the document electronically',
+            modal: true,
+            open: function () {
+                $(this).load('@Url.Action("SignatureDialogPartialView", "Home")');
+            },
+            buttons: {
+                "Sign Document": function () {
+                    $(this).dialog("close");
+                    SignDocument();
+                },
+                Cancel: function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+
+        return false;
+    }
+
+    function SignDocument() {
+
+        // save the document
+        TXTextControl.saveDocument(TXTextControl.streamType.InternalUnicodeFormat, function (e) {
+
+            var serviceURL = "/Home/SignDocument";
+
+            // pass the saved document to the controller method
+            // "SignDocument"
+            $.ajax({
+                type: "POST",
+                url: serviceURL,
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    BinaryDocument: e.data
+                }),
+                success: successFunc,
+                error: errorFunc
+            });
+
+            // load the signed document back into the editor
+            function successFunc(data, status) {
+                TXTextControl.loadDocument(TXTextControl.streamType.InternalUnicodeFormat, data);
+                $("<div>The document has been signed successfully.</div>").dialog(({
+                    autoOpen: true,
+                    resizable: false,
+                    title: 'Success',
+                    modal: true,
+                    buttons: {
+                        "OK": function () {
+                            $(this).dialog("close");
+                        }
+                    }
+                }));
+            }
+
+            function errorFunc() {
+                alert('Error');
+            }
+        });
+
+    }
+</script>

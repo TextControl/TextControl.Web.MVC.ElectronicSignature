@@ -1,0 +1,8 @@
+﻿@model tx_web_sign.Models.Signature
+
+<div id="signatureForm">
+    <p>Your name (demo only):</p>
+    <input readonly id="signer_name" type="text" value="@Model.Name" />
+    <img src="~/Signature_Images/@Model.SignatureImage" alt="" />
+</div>
+
